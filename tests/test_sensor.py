@@ -9,6 +9,7 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 from homeassistant.const import CONF_LATITUDE, CONF_LONGITUDE
 from homeassistant.core import HomeAssistant
 
+from custom_components.oko_fuel.api import DrivstoffappApiError
 from custom_components.oko_fuel.const import (
     CONF_FUEL_TYPES,
     CONF_RADIUS,
@@ -80,3 +81,49 @@ async def test_unload(hass: HomeAssistant, mock_api: AsyncMock) -> None:
     assert await hass.config_entries.async_unload(entry.entry_id)
     await hass.async_block_till_done()
     assert hass.states.get("sensor.circle_k_tynset_diesel").state == "unavailable"
+
+
+async def test_keeps_last_value_during_short_outage(
+    hass: HomeAssistant, mock_api: AsyncMock, freezer
+) -> None:
+    """When the API fails, last known prices are kept for up to 12 hours."""
+    entry = await _setup(hass)  # frozen at 2026-10-23T18:00Z
+    coordinator = entry.runtime_data
+    assert hass.states.get("sensor.circle_k_tynset_diesel").state == "27.44"
+
+    mock_api.side_effect = DrivstoffappApiError("HTTP 502 from /stations/fuel/nearby")
+
+    # 2 hours into the outage: still available, still the last known price.
+    freezer.move_to("2026-10-23T20:00:00+00:00")
+    await coordinator.async_refresh()
+    await hass.async_block_till_done()
+    assert coordinator.last_update_success is True
+    assert hass.states.get("sensor.circle_k_tynset_diesel").state == "27.44"
+
+    # 13 hours after the last success: give up and go unavailable.
+    freezer.move_to("2026-10-24T07:00:00+00:00")
+    await coordinator.async_refresh()
+    await hass.async_block_till_done()
+    assert coordinator.last_update_success is False
+    assert hass.states.get("sensor.circle_k_tynset_diesel").state == "unavailable"
+
+
+async def test_recovers_after_outage(
+    hass: HomeAssistant, mock_api: AsyncMock, freezer
+) -> None:
+    """Sensors come back with fresh prices once the API answers again."""
+    entry = await _setup(hass)
+    coordinator = entry.runtime_data
+
+    mock_api.side_effect = DrivstoffappApiError("HTTP 502")
+    freezer.move_to("2026-10-23T22:00:00+00:00")
+    await coordinator.async_refresh()
+    await hass.async_block_till_done()
+    assert hass.states.get("sensor.circle_k_tynset_diesel").state == "27.44"
+
+    mock_api.side_effect = None  # API back
+    freezer.move_to("2026-10-23T22:30:00+00:00")
+    await coordinator.async_refresh()
+    await hass.async_block_till_done()
+    assert coordinator.last_update_success is True
+    assert hass.states.get("sensor.circle_k_tynset_diesel").state == "27.44"

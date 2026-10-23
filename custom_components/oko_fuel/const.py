@@ -18,6 +18,10 @@ MAX_RADIUS_KM = 100.0
 DEFAULT_SCAN_INTERVAL_MINUTES = 30
 MIN_SCAN_INTERVAL_MINUTES = 5
 
+# How long to keep showing the last known prices when the API is unreachable,
+# before letting the sensors go unavailable.
+RETAIN_AFTER_FAILURE_HOURS = 12
+
 # fuel type key -> field name in the API "prices" object
 FUEL_TYPES: dict[str, str] = {
     "gasoline": "gasoline_price",

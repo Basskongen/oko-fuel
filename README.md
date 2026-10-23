@@ -73,7 +73,9 @@ stasjons-ID-ene selv og redigerer YAML, men trenger ingen HACS.
 
 - API-et er uoffisielt (ingen avtale om oppetid eller at formatet holder seg).
   Integrasjonen gjør ett kall per oppdatering uansett antall stasjoner, så den
-  belaster tjenesten lite.
+  belaster tjenesten lite. Er API-et nede, beholder sensorene den sist kjente
+  prisen i inntil 12 timer før de blir «unavailable». «Sist oppdatert» viser
+  hvor gammel prisen faktisk er.
 - Dekningen varierer. Noen stasjoner mangler priser eller har gamle priser; sjekk
   «Sist oppdatert»-sensoren.
 - Feltet «Bensin 98» tilsvarer API-ets `octane_price`. Hos enkelte stasjoner ser
