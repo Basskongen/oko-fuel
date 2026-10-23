@@ -54,8 +54,30 @@ def test_charging_sites_are_flagged(nearby_stations: list[Station]) -> None:
     assert not circle_k.is_charging_site and circle_k.has_fuel_price
     assert not moller.is_charging_site and not moller.has_fuel_price
 
-    assert mer.label("nb").endswith("– lading")
-    assert mer.label("en").endswith("– EV charging")
-    assert moller.label("nb").endswith("– ingen drivstoffpris")
-    assert circle_k.label("nb") == "Circle K Tynset"
-    assert circle_k.label("nb", with_address=True) == "Circle K Tynset (Brugata 10, 2500 Tynset)"
+    assert mer.label().endswith("– lading")
+    assert moller.label().endswith("– ingen drivstoffpris")
+    assert circle_k.label() == "Circle K Tynset"
+    assert circle_k.label(with_address=True) == "Circle K Tynset (Brugata 10, 2500 Tynset)"
+
+
+def test_brandless_station_gets_address(nearby_stations: list[Station]) -> None:
+    """A bare place name like "Tynset" always carries its address."""
+    by_id = {s.station_id: s for s in nearby_stations}
+    bare = by_id["4gsjfi0208rdcx9"]  # brand "Diverse", name "Tynset"
+    assert not bare.has_brand
+    assert bare.label().startswith("Tynset (Industriveien 9, Tynset)")
+
+
+def test_stale_price_hint(nearby_stations: list[Station]) -> None:
+    """Prices older than two weeks get a 'last updated' hint."""
+    from datetime import datetime, timezone
+
+    by_id = {s.station_id: s for s in nearby_stations}
+    stale = by_id["4gsjfi0208rdcx9"]  # last_updated 2026-09-18
+    fresh = by_id["aahh6100xzos3cd"]  # last_updated 2026-10-23
+    now = datetime(2026, 10, 23, 18, 0, tzinfo=timezone.utc)
+    assert stale.is_stale(now) and not fresh.is_stale(now)
+    from homeassistant.util import dt as dt_util
+
+    day = dt_util.as_local(stale.last_updated).strftime("%d.%m.%Y")
+    assert stale.label().endswith(f"– sist oppdatert {day}")

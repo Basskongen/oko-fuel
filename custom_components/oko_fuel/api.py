@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timedelta
 import logging
 from typing import Any
 
@@ -39,6 +39,9 @@ CHARGING_BRANDS = {
     "uno-x lading",
 }
 CHARGING_NAME_HINTS = ("supercharger", "lading", "ladestasjon", "charger", "charging")
+
+# Prices older than this get a "last updated" hint in the station picker.
+STALE_AFTER = timedelta(days=14)
 
 
 class DrivstoffappApiError(Exception):
@@ -82,16 +85,33 @@ class Station:
         name = self.name.lower()
         return any(hint in name for hint in CHARGING_NAME_HINTS)
 
-    def label(self, language: str = "en", with_address: bool = False) -> str:
-        """Label used in the config flow pick list, with a hint for odd entries."""
+    @property
+    def has_brand(self) -> bool:
+        """False for independent stations the API files under a catch-all brand."""
+        return bool(self.brand) and self.brand.lower() not in GENERIC_BRANDS
+
+    def is_stale(self, now: datetime | None = None) -> bool:
+        """True when the last price update is older than STALE_AFTER."""
+        if self.last_updated is None:
+            return False
+        return (now or dt_util.utcnow()) - self.last_updated > STALE_AFTER
+
+    def label(self, with_address: bool = False) -> str:
+        """Label used in the config flow pick list (Norwegian, like the rest).
+
+        The address is added when asked for, or when the station has no real
+        brand (a bare place name like "Tynset" says nothing on its own).
+        """
         text = self.display_name
-        if with_address and self.address:
+        if (with_address or not self.has_brand) and self.address:
             text = f"{text} ({self.address})"
-        norwegian = language.lower().startswith(("nb", "nn", "no"))
         if self.is_charging_site:
-            text += " – lading" if norwegian else " – EV charging"
+            text += " – lading"
         elif not self.has_fuel_price:
-            text += " – ingen drivstoffpris" if norwegian else " – no fuel price"
+            text += " – ingen drivstoffpris"
+        elif self.is_stale() and self.last_updated is not None:
+            day = dt_util.as_local(self.last_updated).strftime("%d.%m.%Y")
+            text += f" – sist oppdatert {day}"
         return text
 
     @classmethod

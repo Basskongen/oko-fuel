@@ -113,7 +113,7 @@ async def test_options_flow(hass: HomeAssistant, mock_api: AsyncMock) -> None:
     assert result["type"] is FlowResultType.CREATE_ENTRY
     assert entry.options[CONF_SCAN_INTERVAL] == 15
     assert hass.states.get("sensor.max_bensin_tynset_diesel") is not None
-    assert hass.states.get("sensor.max_bensin_tynset_petrol_95") is not None
+    assert hass.states.get("sensor.max_bensin_tynset_bensin_95") is not None
 
 
 async def test_options_flow_removes_deselected(
@@ -135,7 +135,7 @@ async def test_options_flow_removes_deselected(
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
     assert hass.states.get("sensor.max_bensin_tynset_diesel") is not None
-    assert hass.states.get("sensor.circle_k_tynset_petrol_95") is not None
+    assert hass.states.get("sensor.circle_k_tynset_bensin_95") is not None
 
     result = await hass.config_entries.options.async_init(entry.entry_id)
     result = await hass.config_entries.options.async_configure(
@@ -150,9 +150,9 @@ async def test_options_flow_removes_deselected(
     assert result["type"] is FlowResultType.CREATE_ENTRY
 
     assert hass.states.get("sensor.circle_k_tynset_diesel") is not None
-    assert hass.states.get("sensor.circle_k_tynset_petrol_95") is None
+    assert hass.states.get("sensor.circle_k_tynset_bensin_95") is None
     assert hass.states.get("sensor.max_bensin_tynset_diesel") is None
-    assert hass.states.get("sensor.oko_fuel_tynset_cheapest_petrol_95") is None
+    assert hass.states.get("sensor.oko_fuel_tynset_billigste_bensin_95") is None
 
     device_registry = dr.async_get(hass)
     assert device_registry.async_get_device({(DOMAIN, "p2m9i4rdraz6c5g")}) is None
