@@ -1,0 +1,82 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Choose an area",
+        "description": "Pick the point and radius to search for fuel stations. The default is your Home Assistant home location.",
+        "data": {
+          "location": "Search area"
+        },
+        "data_description": {
+          "location": "Drag the circle to set the radius (max 100 km)."
+        }
+      },
+      "stations": {
+        "title": "Choose stations",
+        "description": "Found {count} stations. Pick the ones you want sensors for, and which fuel types to track.",
+        "data": {
+          "stations": "Stations",
+          "fuel_types": "Fuel types"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Could not reach backend.drivstoffapp.no. Check your internet connection and try again.",
+      "no_stations": "No stations found in this area. Try a larger radius.",
+      "no_selection": "Select at least one."
+    },
+    "abort": {
+      "already_configured": "This area is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Øko-fuel options",
+        "data": {
+          "stations": "Stations",
+          "fuel_types": "Fuel types",
+          "scan_interval": "Update interval"
+        },
+        "data_description": {
+          "scan_interval": "Minutes between price refreshes. Prices rarely change more than a few times per day."
+        }
+      }
+    },
+    "error": {
+      "no_selection": "Select at least one."
+    },
+    "abort": {
+      "cannot_connect": "Could not reach backend.drivstoffapp.no."
+    }
+  },
+  "selector": {
+    "fuel_type": {
+      "options": {
+        "gasoline": "Petrol 95",
+        "octane": "Petrol 98",
+        "diesel": "Diesel",
+        "hvo100": "HVO100",
+        "fd": "Coloured diesel",
+        "e10": "E10"
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "gasoline": { "name": "Petrol 95" },
+      "octane": { "name": "Petrol 98" },
+      "diesel": { "name": "Diesel" },
+      "hvo100": { "name": "HVO100" },
+      "fd": { "name": "Coloured diesel" },
+      "e10": { "name": "E10" },
+      "last_updated": { "name": "Last updated" },
+      "cheapest_gasoline": { "name": "Cheapest petrol 95" },
+      "cheapest_octane": { "name": "Cheapest petrol 98" },
+      "cheapest_diesel": { "name": "Cheapest diesel" },
+      "cheapest_hvo100": { "name": "Cheapest HVO100" },
+      "cheapest_fd": { "name": "Cheapest coloured diesel" },
+      "cheapest_e10": { "name": "Cheapest E10" }
+    }
+  }
+}

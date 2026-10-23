@@ -1,0 +1,82 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Velg område",
+        "description": "Velg punkt og radius det skal søkes etter stasjoner i. Standard er hjemmeposisjonen din i Home Assistant.",
+        "data": {
+          "location": "Søkeområde"
+        },
+        "data_description": {
+          "location": "Dra i sirkelen for å endre radius (maks 100 km)."
+        }
+      },
+      "stations": {
+        "title": "Velg stasjoner",
+        "description": "Fant {count} stasjoner. Velg de du vil ha sensorer for, og hvilke drivstofftyper som skal følges.",
+        "data": {
+          "stations": "Stasjoner",
+          "fuel_types": "Drivstofftyper"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Fikk ikke kontakt med backend.drivstoffapp.no. Sjekk internettforbindelsen og prøv igjen.",
+      "no_stations": "Fant ingen stasjoner i dette området. Prøv større radius.",
+      "no_selection": "Velg minst én."
+    },
+    "abort": {
+      "already_configured": "Dette området er allerede satt opp."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Innstillinger for Øko-fuel",
+        "data": {
+          "stations": "Stasjoner",
+          "fuel_types": "Drivstofftyper",
+          "scan_interval": "Oppdateringsintervall"
+        },
+        "data_description": {
+          "scan_interval": "Minutter mellom hver prisoppdatering. Prisene endres sjelden mer enn noen få ganger per dag."
+        }
+      }
+    },
+    "error": {
+      "no_selection": "Velg minst én."
+    },
+    "abort": {
+      "cannot_connect": "Fikk ikke kontakt med backend.drivstoffapp.no."
+    }
+  },
+  "selector": {
+    "fuel_type": {
+      "options": {
+        "gasoline": "Bensin 95",
+        "octane": "Bensin 98",
+        "diesel": "Diesel",
+        "hvo100": "HVO100",
+        "fd": "Farget diesel",
+        "e10": "E10"
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "gasoline": { "name": "Bensin 95" },
+      "octane": { "name": "Bensin 98" },
+      "diesel": { "name": "Diesel" },
+      "hvo100": { "name": "HVO100" },
+      "fd": { "name": "Farget diesel" },
+      "e10": { "name": "E10" },
+      "last_updated": { "name": "Sist oppdatert" },
+      "cheapest_gasoline": { "name": "Billigste bensin 95" },
+      "cheapest_octane": { "name": "Billigste bensin 98" },
+      "cheapest_diesel": { "name": "Billigste diesel" },
+      "cheapest_hvo100": { "name": "Billigste HVO100" },
+      "cheapest_fd": { "name": "Billigste farget diesel" },
+      "cheapest_e10": { "name": "Billigste E10" }
+    }
+  }
+}

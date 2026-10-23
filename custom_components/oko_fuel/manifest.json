@@ -1,0 +1,13 @@
+{
+  "domain": "oko_fuel",
+  "name": "Øko-fuel (norske drivstoffpriser)",
+  "codeowners": [],
+  "config_flow": true,
+  "dependencies": [],
+  "documentation": "https://github.com/Basskongen/oko-fuel",
+  "integration_type": "hub",
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/Basskongen/oko-fuel/issues",
+  "requirements": [],
+  "version": "0.1.0"
+}

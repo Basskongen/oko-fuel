@@ -1,0 +1,81 @@
+# Alternativ uten integrasjon: rene YAML-sensorer mot det åpne API-et.
+#
+# Legg denne fila i config/packages/drivstoffapp.yaml og sørg for at
+# configuration.yaml har:
+#
+#   homeassistant:
+#     packages: !include_dir_named packages
+#
+# Bytt ut lat/lng med ditt område, og stasjons-ID-ene med dine. ID-ene finner du
+# ved å åpne adressen under i en nettleser (feltet "id" på hver stasjon):
+#   https://backend.drivstoffapp.no/stations/fuel/nearby?lat=62.276&lng=10.782&radius=10
+#
+# Etter endring: Utviklerverktøy → YAML → "REST entities and notify services"
+# (eller start Home Assistant på nytt).
+
+rest:
+  - resource: "https://backend.drivstoffapp.no/stations/fuel/nearby?lat=62.276&lng=10.782&radius=10&limit=100&include_no_price=true"
+    scan_interval: 1800
+    timeout: 30
+    sensor:
+      # Én "rå" sensor som bare holder på hele svaret som attributt.
+      # Da treffer vi API-et én gang, uansett hvor mange stasjoner vi følger.
+      - name: "Drivstoffapp rådata"
+        unique_id: drivstoffapp_raw
+        value_template: "{{ value_json | count }}"
+        unit_of_measurement: "stasjoner"
+        json_attributes_path: "$"
+        json_attributes:
+          - "0"
+
+      # Pris per stasjon og drivstoff. Kopier blokken per stasjon/drivstoff.
+      # Tilgjengelige prisfelt: gasoline_price, octane_price, diesel_price,
+      # hvo100_price, fd_price, e10_price
+      - name: "Circle K Tynset bensin 95"
+        unique_id: drivstoffapp_aahh6100xzos3cd_gasoline
+        unit_of_measurement: "NOK/L"
+        state_class: measurement
+        icon: mdi:gas-station
+        value_template: >-
+          {% set s = value_json | selectattr('id', 'eq', 'aahh6100xzos3cd') | first %}
+          {{ s.prices.gasoline_price if s is defined and s.prices.gasoline_price is not none else none }}
+        json_attributes_path: "$[?(@.id=='aahh6100xzos3cd')].prices"
+        json_attributes:
+          - last_updated
+
+      - name: "Circle K Tynset diesel"
+        unique_id: drivstoffapp_aahh6100xzos3cd_diesel
+        unit_of_measurement: "NOK/L"
+        state_class: measurement
+        icon: mdi:gas-station
+        value_template: >-
+          {% set s = value_json | selectattr('id', 'eq', 'aahh6100xzos3cd') | first %}
+          {{ s.prices.diesel_price if s is defined and s.prices.diesel_price is not none else none }}
+
+      - name: "Uno-X Tynset bensin 95"
+        unique_id: drivstoffapp_nhecf2vh28lth1o_gasoline
+        unit_of_measurement: "NOK/L"
+        state_class: measurement
+        icon: mdi:gas-station
+        value_template: >-
+          {% set s = value_json | selectattr('id', 'eq', 'nhecf2vh28lth1o') | first %}
+          {{ s.prices.gasoline_price if s is defined and s.prices.gasoline_price is not none else none }}
+
+      - name: "Uno-X Tynset diesel"
+        unique_id: drivstoffapp_nhecf2vh28lth1o_diesel
+        unit_of_measurement: "NOK/L"
+        state_class: measurement
+        icon: mdi:gas-station
+        value_template: >-
+          {% set s = value_json | selectattr('id', 'eq', 'nhecf2vh28lth1o') | first %}
+          {{ s.prices.diesel_price if s is defined and s.prices.diesel_price is not none else none }}
+
+      # Billigste diesel blant ALLE stasjonene i søket (ikke bare de over).
+      - name: "Billigste diesel i området"
+        unique_id: drivstoffapp_cheapest_diesel
+        unit_of_measurement: "NOK/L"
+        state_class: measurement
+        icon: mdi:gas-station-outline
+        value_template: >-
+          {% set prices = value_json | map(attribute='prices.diesel_price') | reject('none') | list %}
+          {{ prices | min if prices else none }}
