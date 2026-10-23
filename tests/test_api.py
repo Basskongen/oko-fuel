@@ -57,4 +57,5 @@ def test_charging_sites_are_flagged(nearby_stations: list[Station]) -> None:
     assert mer.label("nb").endswith("– lading")
     assert mer.label("en").endswith("– EV charging")
     assert moller.label("nb").endswith("– ingen drivstoffpris")
-    assert circle_k.label("nb") == "Circle K Tynset (Brugata 10, 2500 Tynset)"
+    assert circle_k.label("nb") == "Circle K Tynset"
+    assert circle_k.label("nb", with_address=True) == "Circle K Tynset (Brugata 10, 2500 Tynset)"

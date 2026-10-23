@@ -67,10 +67,15 @@ def _station_selector(stations: list[Station], language: str) -> SelectSelector:
         return 2 if station.is_charging_site else 1
 
     ordered = sorted(stations, key=group)  # stable: keeps API distance order
+    # Plain names only; add the address just where two stations share a name.
+    name_counts = Counter(s.display_name for s in ordered)
     return SelectSelector(
         SelectSelectorConfig(
             options=[
-                SelectOptionDict(value=s.station_id, label=s.label(language))
+                SelectOptionDict(
+                    value=s.station_id,
+                    label=s.label(language, name_counts[s.display_name] > 1),
+                )
                 for s in ordered
             ],
             multiple=True,

@@ -82,9 +82,11 @@ class Station:
         name = self.name.lower()
         return any(hint in name for hint in CHARGING_NAME_HINTS)
 
-    def label(self, language: str = "en") -> str:
+    def label(self, language: str = "en", with_address: bool = False) -> str:
         """Label used in the config flow pick list, with a hint for odd entries."""
-        text = f"{self.display_name} ({self.address})" if self.address else self.display_name
+        text = self.display_name
+        if with_address and self.address:
+            text = f"{text} ({self.address})"
         norwegian = language.lower().startswith(("nb", "nn", "no"))
         if self.is_charging_site:
             text += " – lading" if norwegian else " – EV charging"

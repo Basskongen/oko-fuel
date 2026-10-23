@@ -172,7 +172,8 @@ async def test_station_list_order_and_labels(
     )
     options = result["data_schema"].schema[CONF_STATIONS].config["options"]
     labels = [o["label"] for o in options]
-    assert labels[0].startswith("Max Bensin Tynset")
+    assert labels[0] == "Max Bensin Tynset"
+    assert "(" not in labels[0]
     assert labels[-1].endswith("– lading")
     assert labels[-2].endswith("– lading")
     priced = [l for l in labels if "–" not in l]
