@@ -6,7 +6,6 @@ import asyncio
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 import logging
-import math
 from typing import Any
 
 import aiohttp
@@ -41,16 +40,14 @@ CHARGING_BRANDS = {
 }
 CHARGING_NAME_HINTS = ("supercharger", "lading", "ladestasjon", "charger", "charging")
 
-# Prices older than this get a "last updated" hint in the station picker.
-STALE_AFTER = timedelta(days=14)
+# Stations not updated within this window are hidden in the station picker.
+# This also hides the API's stale duplicate records (no brand, months-old
+# placeholder prices), so no duplicate merging is needed.
+HIDE_AFTER = timedelta(days=7)
 
 # Known wrong place names in the API's addresses (postcode -> real place).
 # 2510 is Tylldalen in Tynset municipality, not Folldal.
 ADDRESS_FIXES = {"2510 Folldal": "2510 Tylldalen"}
-
-# The API carries old duplicate records of some stations (no brand, stale
-# price). Two entries with the same name this close together are one station.
-DUPLICATE_RADIUS_KM = 10.0
 
 
 class DrivstoffappApiError(Exception):
@@ -99,11 +96,11 @@ class Station:
         """False for independent stations the API files under a catch-all brand."""
         return bool(self.brand) and self.brand.lower() not in GENERIC_BRANDS
 
-    def is_stale(self, now: datetime | None = None) -> bool:
-        """True when the last price update is older than STALE_AFTER."""
+    def is_recent(self, now: datetime | None = None) -> bool:
+        """True when the API has touched this station within HIDE_AFTER."""
         if self.last_updated is None:
             return False
-        return (now or dt_util.utcnow()) - self.last_updated > STALE_AFTER
+        return (now or dt_util.utcnow()) - self.last_updated <= HIDE_AFTER
 
     def label(self, with_address: bool = False) -> str:
         """Label used in the config flow pick list (Norwegian, like the rest).
@@ -118,9 +115,6 @@ class Station:
             text += " – lading"
         elif not self.has_fuel_price:
             text += " – ingen drivstoffpris"
-        elif self.is_stale() and self.last_updated is not None:
-            day = dt_util.as_local(self.last_updated).strftime("%d.%m.%Y")
-            text += f" – sist oppdatert {day}"
         return text
 
     @classmethod
@@ -162,42 +156,6 @@ class Station:
             prices=prices,
             last_updated=last_updated,
         )
-
-
-def _distance_km(a: Station, b: Station) -> float | None:
-    if None in (a.latitude, a.longitude, b.latitude, b.longitude):
-        return None
-    lat1, lon1 = math.radians(a.latitude), math.radians(a.longitude)  # type: ignore[arg-type]
-    lat2, lon2 = math.radians(b.latitude), math.radians(b.longitude)  # type: ignore[arg-type]
-    h = (
-        math.sin((lat2 - lat1) / 2) ** 2
-        + math.cos(lat1) * math.cos(lat2) * math.sin((lon2 - lon1) / 2) ** 2
-    )
-    return 2 * 6371.0 * math.asin(math.sqrt(h))
-
-
-def dedupe_stations(stations: list[Station]) -> list[Station]:
-    """Collapse duplicate records of the same station, keeping the freshest.
-
-    Keeps the input order (API distance order) of the surviving entries.
-    """
-    survivors: list[Station] = []
-    for station in stations:
-        key = station.display_name.casefold()
-        for index, kept in enumerate(survivors):
-            if kept.display_name.casefold() != key:
-                continue
-            distance = _distance_km(station, kept)
-            if distance is not None and distance > DUPLICATE_RADIUS_KM:
-                continue
-            kept_time = kept.last_updated or datetime.min.replace(tzinfo=dt_util.UTC)
-            new_time = station.last_updated or datetime.min.replace(tzinfo=dt_util.UTC)
-            if new_time > kept_time:
-                survivors[index] = station
-            break
-        else:
-            survivors.append(station)
-    return survivors
 
 
 class DrivstoffappApi:

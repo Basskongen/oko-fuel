@@ -29,7 +29,7 @@ from homeassistant.helpers.selector import (
     SelectSelectorMode,
 )
 
-from .api import DrivstoffappApi, DrivstoffappApiError, Station, dedupe_stations
+from .api import DrivstoffappApi, DrivstoffappApiError, Station
 from .const import (
     CONF_FUEL_TYPES,
     CONF_RADIUS,
@@ -58,6 +58,11 @@ def _fuel_type_selector() -> SelectSelector:
     )
 
 
+def _visible_stations(stations: list[Station], keep_ids: set[str]) -> list[Station]:
+    """Hide stations the API has not updated recently, except ones already chosen."""
+    return [s for s in stations if s.is_recent() or s.station_id in keep_ids]
+
+
 def _station_selector(stations: list[Station]) -> SelectSelector:
     """Real fuel stations first, then price-less ones, then EV charging sites."""
 
@@ -66,7 +71,7 @@ def _station_selector(stations: list[Station]) -> SelectSelector:
             return 0
         return 2 if station.is_charging_site else 1
 
-    ordered = sorted(dedupe_stations(stations), key=group)  # stable sort
+    ordered = sorted(stations, key=group)  # stable sort keeps distance order
     # Plain names only; add the address where two stations share a name
     # (case-insensitive: the API has both "YX Tolga" and "Yx Tolga").
     name_counts = Counter(s.display_name.casefold() for s in ordered)
@@ -139,6 +144,7 @@ class OkoFuelConfigFlow(ConfigFlow, domain=DOMAIN):
                 _LOGGER.exception("Could not fetch stations")
                 errors["base"] = "cannot_connect"
             else:
+                stations = _visible_stations(stations, set())
                 if not stations:
                     errors["base"] = "no_stations"
                 else:
@@ -242,6 +248,9 @@ class OkoFuelOptionsFlow(OptionsFlowWithReload):
         except DrivstoffappApiError:
             _LOGGER.exception("Could not fetch stations for options")
             return self.async_abort(reason="cannot_connect")
+
+        selected_ids = set(current.get(CONF_STATIONS, []))
+        stations = _visible_stations(stations, selected_ids)
 
         # Keep previously selected stations selectable even if the radius
         # search no longer returns them.

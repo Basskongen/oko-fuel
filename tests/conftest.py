@@ -19,6 +19,12 @@ def auto_enable_custom_integrations(enable_custom_integrations: None) -> None:
     """Let the test harness load custom_components/."""
 
 
+@pytest.fixture(autouse=True)
+def frozen_time(freezer):
+    """Pin 'now' to the day the fixture was captured, so freshness is stable."""
+    freezer.move_to("2026-10-23T18:00:00+00:00")
+
+
 @pytest.fixture
 def nearby_raw() -> list[dict]:
     """Real API response for Tynset, captured 2026-10-23."""

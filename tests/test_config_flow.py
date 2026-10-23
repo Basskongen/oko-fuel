@@ -178,4 +178,6 @@ async def test_station_list_order_and_labels(
     assert labels[-2].endswith("– lading")
     priced = [l for l in labels if "–" not in l]
     assert labels[: len(priced)] == priced  # all priced stations first
-    assert result["description_placeholders"] == {"count": "5", "total": "8"}
+    # The station last updated 2026-09-18 is hidden by the 7-day filter.
+    assert "Tynset (Industriveien 9, Tynset)" not in labels
+    assert result["description_placeholders"] == {"count": "4", "total": "7"}
