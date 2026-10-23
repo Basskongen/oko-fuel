@@ -157,3 +157,24 @@ async def test_options_flow_removes_deselected(
     device_registry = dr.async_get(hass)
     assert device_registry.async_get_device({(DOMAIN, "p2m9i4rdraz6c5g")}) is None
     assert device_registry.async_get_device({(DOMAIN, "aahh6100xzos3cd")}) is not None
+
+
+async def test_station_list_order_and_labels(
+    hass: HomeAssistant, mock_api: AsyncMock
+) -> None:
+    """Fuel stations come first; chargers are last and labelled."""
+    hass.config.language = "nb"
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": config_entries.SOURCE_USER}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {CONF_LOCATION: LOCATION}
+    )
+    options = result["data_schema"].schema[CONF_STATIONS].config["options"]
+    labels = [o["label"] for o in options]
+    assert labels[0].startswith("Max Bensin Tynset")
+    assert labels[-1].endswith("– lading")
+    assert labels[-2].endswith("– lading")
+    priced = [l for l in labels if "–" not in l]
+    assert labels[: len(priced)] == priced  # all priced stations first
+    assert result["description_placeholders"] == {"count": "5", "total": "8"}

@@ -58,11 +58,20 @@ def _fuel_type_selector() -> SelectSelector:
     )
 
 
-def _station_selector(stations: list[Station]) -> SelectSelector:
+def _station_selector(stations: list[Station], language: str) -> SelectSelector:
+    """Real fuel stations first, then price-less ones, then EV charging sites."""
+
+    def group(station: Station) -> int:
+        if station.has_fuel_price:
+            return 0
+        return 2 if station.is_charging_site else 1
+
+    ordered = sorted(stations, key=group)  # stable: keeps API distance order
     return SelectSelector(
         SelectSelectorConfig(
             options=[
-                SelectOptionDict(value=s.station_id, label=s.label) for s in stations
+                SelectOptionDict(value=s.station_id, label=s.label(language))
+                for s in ordered
             ],
             multiple=True,
             mode=SelectSelectorMode.LIST,
@@ -174,7 +183,9 @@ class OkoFuelConfigFlow(ConfigFlow, domain=DOMAIN):
 
         schema = vol.Schema(
             {
-                vol.Required(CONF_STATIONS): _station_selector(self._stations),
+                vol.Required(CONF_STATIONS): _station_selector(
+                    self._stations, self.hass.config.language
+                ),
                 vol.Required(
                     CONF_FUEL_TYPES, default=DEFAULT_FUEL_TYPES
                 ): _fuel_type_selector(),
@@ -184,7 +195,10 @@ class OkoFuelConfigFlow(ConfigFlow, domain=DOMAIN):
             step_id="stations",
             data_schema=schema,
             errors=errors,
-            description_placeholders={"count": str(len(self._stations))},
+            description_placeholders={
+                "count": str(sum(1 for s in self._stations if s.has_fuel_price)),
+                "total": str(len(self._stations)),
+            },
         )
 
 
@@ -245,7 +259,7 @@ class OkoFuelOptionsFlow(OptionsFlowWithReload):
             {
                 vol.Required(
                     CONF_STATIONS, default=list(current.get(CONF_STATIONS, []))
-                ): _station_selector(stations),
+                ): _station_selector(stations, self.hass.config.language),
                 vol.Required(
                     CONF_FUEL_TYPES,
                     default=list(current.get(CONF_FUEL_TYPES, DEFAULT_FUEL_TYPES)),

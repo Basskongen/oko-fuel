@@ -40,3 +40,21 @@ def test_display_name_avoids_duplicate_brand() -> None:
         {"id": "x", "name": "Circle K Tynset", "brand": "Circle K", "prices": {}}
     )
     assert station.display_name == "Circle K Tynset"
+
+
+def test_charging_sites_are_flagged(nearby_stations: list[Station]) -> None:
+    """Operators that only do EV charging are marked, fuel stations are not."""
+    by_id = {s.station_id: s for s in nearby_stations}
+    mer = by_id["kbu0uswhn25olpy"]  # Mer Alti Tynset, no prices
+    kople = by_id["iy2siux47ezc2rp"]  # Kople EXTRA Tynset, no prices
+    circle_k = by_id["aahh6100xzos3cd"]
+    moller = by_id["qr9z047kjuct92o"]  # Møller Bil, no prices, not a charger brand
+
+    assert mer.is_charging_site and kople.is_charging_site
+    assert not circle_k.is_charging_site and circle_k.has_fuel_price
+    assert not moller.is_charging_site and not moller.has_fuel_price
+
+    assert mer.label("nb").endswith("– lading")
+    assert mer.label("en").endswith("– EV charging")
+    assert moller.label("nb").endswith("– ingen drivstoffpris")
+    assert circle_k.label("nb") == "Circle K Tynset (Brugata 10, 2500 Tynset)"

@@ -13,7 +13,7 @@
       },
       "stations": {
         "title": "Velg stasjoner",
-        "description": "Fant {count} stasjoner. Velg de du vil ha sensorer for, og hvilke drivstofftyper som skal følges.",
+        "description": "Fant {count} stasjoner med drivstoffpriser ({total} totalt). Oppføringer merket «lading» eller «ingen drivstoffpris» gir ingen priser. Velg stasjonene du vil ha sensorer for, og hvilke drivstofftyper som skal følges.",
         "data": {
           "stations": "Stasjoner",
           "fuel_types": "Drivstofftyper"

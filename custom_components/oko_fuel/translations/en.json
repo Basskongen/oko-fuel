@@ -13,7 +13,7 @@
       },
       "stations": {
         "title": "Choose stations",
-        "description": "Found {count} stations. Pick the ones you want sensors for, and which fuel types to track.",
+        "description": "Found {count} stations with fuel prices ({total} in total). Sites marked “EV charging” or “no fuel price” will not give any prices. Pick the stations you want sensors for, and which fuel types to track.",
         "data": {
           "stations": "Stations",
           "fuel_types": "Fuel types"

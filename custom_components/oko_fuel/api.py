@@ -19,6 +19,27 @@ _LOGGER = logging.getLogger(__name__)
 # The API uses these as a catch-all "brand" for independent stations.
 GENERIC_BRANDS = {"diverse", "ukjent", "unknown", "other", "annet"}
 
+# The fuel endpoint also returns EV charging sites, but gives no reliable flag
+# for them (station_type is always "road", has_electric always false). These
+# operators only do charging, so we use the brand as the tell.
+CHARGING_BRANDS = {
+    "mer",
+    "kople",
+    "ionity",
+    "tesla",
+    "recharge",
+    "eviny",
+    "elton",
+    "fortum",
+    "plugsurfing",
+    "lyse",
+    "bkk",
+    "supercharge",
+    "circle k charge",
+    "uno-x lading",
+}
+CHARGING_NAME_HINTS = ("supercharger", "lading", "ladestasjon", "charger", "charging")
+
 
 class DrivstoffappApiError(Exception):
     """Raised when the API cannot be reached or returns an unexpected payload."""
@@ -47,11 +68,29 @@ class Station:
         return self.name or brand or self.station_id
 
     @property
-    def label(self) -> str:
-        """Label used in the config flow pick list."""
-        if self.address:
-            return f"{self.display_name} ({self.address})"
-        return self.display_name
+    def has_fuel_price(self) -> bool:
+        """True when at least one fuel price is known."""
+        return any(value is not None for value in self.prices.values())
+
+    @property
+    def is_charging_site(self) -> bool:
+        """Best-effort guess that this is an EV charging site, not a fuel station."""
+        if self.has_fuel_price:
+            return False
+        if self.brand.lower() in CHARGING_BRANDS:
+            return True
+        name = self.name.lower()
+        return any(hint in name for hint in CHARGING_NAME_HINTS)
+
+    def label(self, language: str = "en") -> str:
+        """Label used in the config flow pick list, with a hint for odd entries."""
+        text = f"{self.display_name} ({self.address})" if self.address else self.display_name
+        norwegian = language.lower().startswith(("nb", "nn", "no"))
+        if self.is_charging_site:
+            text += " – lading" if norwegian else " – EV charging"
+        elif not self.has_fuel_price:
+            text += " – ingen drivstoffpris" if norwegian else " – no fuel price"
+        return text
 
     @classmethod
     def from_api(cls, raw: dict[str, Any]) -> Station:
