@@ -126,6 +126,16 @@ class Station:
             except (TypeError, ValueError):
                 prices[key] = None
 
+        # The API fills in octane (98) even at stations that do not sell it,
+        # with a bogus value lower than 95. Real 98 always costs more than 95,
+        # so drop an octane price that is not above gasoline.
+        if (
+            prices.get("octane") is not None
+            and prices.get("gasoline") is not None
+            and prices["octane"] <= prices["gasoline"]
+        ):
+            prices["octane"] = None
+
         last_updated = None
         if raw_prices.get("last_updated"):
             last_updated = dt_util.parse_datetime(str(raw_prices["last_updated"]))

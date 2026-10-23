@@ -84,3 +84,19 @@ def test_is_recent(nearby_stations: list[Station]) -> None:
     now = datetime(2026, 10, 23, 18, 0, tzinfo=timezone.utc)
     assert by_id["aahh6100xzos3cd"].is_recent(now)  # updated today
     assert not by_id["4gsjfi0208rdcx9"].is_recent(now)  # updated 2026-09-18
+
+
+def test_bogus_octane_is_dropped() -> None:
+    """Octane (98) that is not dearer than gasoline (95) is treated as missing."""
+    bogus = Station.from_api(
+        {"id": "x", "name": "Circle K Tynset", "brand": "Circle K",
+         "prices": {"gasoline_price": 30.14, "octane_price": 22.92, "diesel_price": 27.44}}
+    )
+    assert bogus.prices["octane"] is None
+    assert bogus.prices["gasoline"] == 30.14
+
+    real = Station.from_api(
+        {"id": "y", "name": "Somewhere", "brand": "X",
+         "prices": {"gasoline_price": 30.0, "octane_price": 32.5}}
+    )
+    assert real.prices["octane"] == 32.5
