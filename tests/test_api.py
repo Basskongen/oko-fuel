@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from custom_components.oko_fuel.api import Station
+from custom_components.oko_fuel.api import Station, dedupe_stations
 
 
 def test_parse_station_with_prices(nearby_raw: list[dict]) -> None:
@@ -81,3 +81,47 @@ def test_stale_price_hint(nearby_stations: list[Station]) -> None:
 
     day = dt_util.as_local(stale.last_updated).strftime("%d.%m.%Y")
     assert stale.label().endswith(f"– sist oppdatert {day}")
+
+
+def test_dedupe_keeps_freshest_record() -> None:
+    """The API's stale brand-less copies of a station are dropped."""
+    fresh = Station.from_api(
+        {
+            "id": "fresh",
+            "name": "Tylldal",
+            "brand": "DRIV",
+            "location": {"latitude": 62.120266, "longitude": 10.799557, "address": "x"},
+            "prices": {"diesel_price": 28.06, "last_updated": "2026-10-23T06:14:04Z"},
+        }
+    )
+    stale = Station.from_api(
+        {
+            "id": "stale",
+            "name": "DRIV Tylldal",
+            "brand": None,
+            "location": {"latitude": 62.1376694, "longitude": 10.7937845, "address": "y"},
+            "prices": {"diesel_price": 22.0, "last_updated": "2026-05-04T02:42:47.791000Z"},
+        }
+    )
+    far_away = Station.from_api(
+        {
+            "id": "far",
+            "name": "DRIV Tylldal",
+            "brand": None,
+            "location": {"latitude": 60.0, "longitude": 10.0, "address": "z"},
+            "prices": {"last_updated": "2026-10-23T06:14:04Z"},
+        }
+    )
+    assert fresh.display_name.casefold() == stale.display_name.casefold()
+    # Order of input must not matter for which one survives.
+    assert [s.station_id for s in dedupe_stations([stale, fresh, far_away])] == ["fresh", "far"]
+    assert [s.station_id for s in dedupe_stations([fresh, stale])] == ["fresh"]
+
+
+def test_known_address_fix() -> None:
+    """2510 is Tylldalen, whatever the API says."""
+    station = Station.from_api(
+        {"id": "x", "name": "Tylldal", "brand": "DRIV",
+         "location": {"address": "Tylldalsveien 1975, 2510 Folldal"}, "prices": {}}
+    )
+    assert station.address == "Tylldalsveien 1975, 2510 Tylldalen"

@@ -29,7 +29,7 @@ from homeassistant.helpers.selector import (
     SelectSelectorMode,
 )
 
-from .api import DrivstoffappApi, DrivstoffappApiError, Station
+from .api import DrivstoffappApi, DrivstoffappApiError, Station, dedupe_stations
 from .const import (
     CONF_FUEL_TYPES,
     CONF_RADIUS,
@@ -66,7 +66,7 @@ def _station_selector(stations: list[Station]) -> SelectSelector:
             return 0
         return 2 if station.is_charging_site else 1
 
-    ordered = sorted(stations, key=group)  # stable: keeps API distance order
+    ordered = sorted(dedupe_stations(stations), key=group)  # stable sort
     # Plain names only; add the address where two stations share a name
     # (case-insensitive: the API has both "YX Tolga" and "Yx Tolga").
     name_counts = Counter(s.display_name.casefold() for s in ordered)

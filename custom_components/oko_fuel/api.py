@@ -6,6 +6,7 @@ import asyncio
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 import logging
+import math
 from typing import Any
 
 import aiohttp
@@ -42,6 +43,14 @@ CHARGING_NAME_HINTS = ("supercharger", "lading", "ladestasjon", "charger", "char
 
 # Prices older than this get a "last updated" hint in the station picker.
 STALE_AFTER = timedelta(days=14)
+
+# Known wrong place names in the API's addresses (postcode -> real place).
+# 2510 is Tylldalen in Tynset municipality, not Folldal.
+ADDRESS_FIXES = {"2510 Folldal": "2510 Tylldalen"}
+
+# The API carries old duplicate records of some stations (no brand, stale
+# price). Two entries with the same name this close together are one station.
+DUPLICATE_RADIUS_KM = 10.0
 
 
 class DrivstoffappApiError(Exception):
@@ -138,17 +147,57 @@ class Station:
         if isinstance(expand, dict) and isinstance(expand.get("city"), dict):
             city = str(expand["city"].get("name") or "")
 
+        address = str(location.get("address") or "")
+        for wrong, right in ADDRESS_FIXES.items():
+            address = address.replace(wrong, right)
+
         return cls(
             city=city,
             station_id=str(raw.get("id") or ""),
             name=str(raw.get("name") or ""),
             brand=str(raw.get("brand") or ""),
-            address=str(location.get("address") or ""),
+            address=address,
             latitude=location.get("latitude"),
             longitude=location.get("longitude"),
             prices=prices,
             last_updated=last_updated,
         )
+
+
+def _distance_km(a: Station, b: Station) -> float | None:
+    if None in (a.latitude, a.longitude, b.latitude, b.longitude):
+        return None
+    lat1, lon1 = math.radians(a.latitude), math.radians(a.longitude)  # type: ignore[arg-type]
+    lat2, lon2 = math.radians(b.latitude), math.radians(b.longitude)  # type: ignore[arg-type]
+    h = (
+        math.sin((lat2 - lat1) / 2) ** 2
+        + math.cos(lat1) * math.cos(lat2) * math.sin((lon2 - lon1) / 2) ** 2
+    )
+    return 2 * 6371.0 * math.asin(math.sqrt(h))
+
+
+def dedupe_stations(stations: list[Station]) -> list[Station]:
+    """Collapse duplicate records of the same station, keeping the freshest.
+
+    Keeps the input order (API distance order) of the surviving entries.
+    """
+    survivors: list[Station] = []
+    for station in stations:
+        key = station.display_name.casefold()
+        for index, kept in enumerate(survivors):
+            if kept.display_name.casefold() != key:
+                continue
+            distance = _distance_km(station, kept)
+            if distance is not None and distance > DUPLICATE_RADIUS_KM:
+                continue
+            kept_time = kept.last_updated or datetime.min.replace(tzinfo=dt_util.UTC)
+            new_time = station.last_updated or datetime.min.replace(tzinfo=dt_util.UTC)
+            if new_time > kept_time:
+                survivors[index] = station
+            break
+        else:
+            survivors.append(station)
+    return survivors
 
 
 class DrivstoffappApi:
