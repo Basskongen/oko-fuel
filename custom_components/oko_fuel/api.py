@@ -102,14 +102,10 @@ class Station:
             return False
         return (now or dt_util.utcnow()) - self.last_updated <= HIDE_AFTER
 
-    def label(self, with_address: bool = False) -> str:
-        """Label used in the config flow pick list (Norwegian, like the rest).
-
-        The address is added when asked for, or when the station has no real
-        brand (a bare place name like "Tynset" says nothing on its own).
-        """
+    def label(self) -> str:
+        """Label used in the config flow pick list (Norwegian, like the rest)."""
         text = self.display_name
-        if (with_address or not self.has_brand) and self.address:
+        if self.address:
             text = f"{text} ({self.address})"
         if self.is_charging_site:
             text += " – lading"

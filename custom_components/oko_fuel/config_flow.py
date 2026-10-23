@@ -72,17 +72,10 @@ def _station_selector(stations: list[Station]) -> SelectSelector:
         return 2 if station.is_charging_site else 1
 
     ordered = sorted(stations, key=group)  # stable sort keeps distance order
-    # Plain names only; add the address where two stations share a name
-    # (case-insensitive: the API has both "YX Tolga" and "Yx Tolga").
-    name_counts = Counter(s.display_name.casefold() for s in ordered)
     return SelectSelector(
         SelectSelectorConfig(
             options=[
-                SelectOptionDict(
-                    value=s.station_id,
-                    label=s.label(name_counts[s.display_name.casefold()] > 1),
-                )
-                for s in ordered
+                SelectOptionDict(value=s.station_id, label=s.label()) for s in ordered
             ],
             multiple=True,
             mode=SelectSelectorMode.LIST,
