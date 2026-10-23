@@ -78,8 +78,9 @@ stasjons-ID-ene selv og redigerer YAML, men trenger ingen HACS.
   «Sist oppdatert»-sensoren.
 - Feltet «Bensin 98» tilsvarer API-ets `octane_price`. Hos enkelte stasjoner ser
   tallet merkelig lavt ut, så bruk det med litt skepsis.
-- Ikonet i integrasjonsvelgeren kommer først når det er godkjent i Home Assistants
-  brands-register, se [`brands/README.md`](brands/README.md).
+- Ikonet ligger i `custom_components/oko_fuel/brand/` og vises av Home Assistant
+  2026.3 eller nyere. Eldre versjoner viser et plassholderikon. Kilden er
+  [`assets/icon.svg`](assets/icon.svg).
 
 ## Utvikling
 
